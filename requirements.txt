@@ -1,0 +1,13 @@
+# Core Scientific Stack
+numpy>=1.23.5
+matplotlib>=3.7.1
+networkx>=3.1
+
+# Qiskit Legacy Stack (Compatible with your code)
+qiskit==0.46.0
+qiskit-aer==0.13.3
+qiskit-algorithms==0.2.1
+qiskit-optimization==0.6.0
+
+# Optional: To ensure the Aer backends load correctly
+qiskit-terra==0.46.0
