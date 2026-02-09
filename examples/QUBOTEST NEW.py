@@ -125,10 +125,10 @@ if __name__ == "__main__":
     problem, g = create_pvrp_problem(problem_path)
 
 
-    for num_drones in [2,3,4]:  # Run for both 2 drones and 3 drones
+    for num_drones in [2,3,4]:  # Run for both 2 drones and 3 drones and 4 drones
         print(f"\n**Running Drone Scheduling for {num_drones} Drones** \n")
 
-        # Loop through 10 different penalty values
+        # Loop through 2 times
         for i in range(2):
 
             # # Initialize the scheduler with new penalties
@@ -150,153 +150,8 @@ if __name__ == "__main__":
             print("\n🛠 **Drone Scheduling Results:**")
             for drone, assigned_routes in drone_assignments.items():
                 total_load = sum(sum(problem.costs[route[i]][route[i+1]] for i in range(len(route)-1)) for route in assigned_routes)
-                print(f"🚁 **Drone {drone}:** Routes {assigned_routes}, **Total Load = {total_load}**")
+                print(f"**Drone {drone}:** Routes {assigned_routes}, **Total Load = {total_load}**")
 
-            print(f"\n📊 **Total Routes Assigned in Iteration {i+1}: {total_routes}**")
+            print(f"\n**Total Routes Assigned in Iteration {i+1}: {total_routes}**")
 
-        print(f"\n✅ **Completed Runs for {num_drones} Drones** ✅\n") 
-
-
-# if __name__ == "__main__":
-#     # Full VRP routes pool
-#     routes_full = [
-#         [0, 13, 7, 0], [0, 2, 10, 0], [0, 3, 19, 8, 0], [0, 15, 12, 0],
-#         [0, 16, 0], [0, 11, 4, 0], [0, 1, 0], [0, 6, 0],
-#         [0, 21, 5, 0], [0, 9, 18, 0], [0, 14, 17, 0], [0, 20, 0]
-#     ]
-
-#     problem_path = r'C:\Users\darre\Desktop\Quantum Research\Local_Drones\D-Wave-VRP-localsearch\tests\pvrp\p-n22-k2.vrp'
-#     problem, g = create_pvrp_problem(problem_path)
-
-#     MAX_TERMS = 90          # QUBO term limit
-#     TRIALS_PER_SETTING = 3  # repeat each (drones, routes) setting
-#     DRONES_START = 2
-#     DRONES_END = min(6, len(routes_full))  # cap if you want
-
-#     def route_cost(route, costs):
-#         return sum(costs[route[i]][route[i+1]] for i in range(len(route)-1))
-
-#     def compute_loads(assignments, routes, costs, num_drones):
-#         # assignments: dict route_idx -> drone_idx
-#         loads = [0.0] * num_drones
-#         for r_idx, d_idx in assignments.items():
-#             loads[d_idx] += route_cost(routes[r_idx], costs)
-#         return loads
-
-#     def parse_solution_to_assignments(sample):
-#         """sample is dict like {'x_0_1': 1, 'x_1_0': 1, ...} -> {route_id: drone_id} for all variables == 1."""
-#         assign = {}
-#         for key, val in sample.items():
-#             if not val:
-#                 continue
-#             parts = str(key).split('_')
-#             if len(parts) == 3 and parts[0] == 'x':
-#                 try:
-#                     r = int(parts[1]); d = int(parts[2])
-#                     # If multiple drones light up for one route, last one wins; we’ll measure violations separately.
-#                     assign[r] = d
-#                 except:
-#                     pass
-#         return assign
-
-#     def assignment_violations(sample, num_routes, num_drones):
-#         """Returns (unassigned_count, overassigned_count)."""
-#         per_route_counts = [0] * num_routes
-#         for key, val in sample.items():
-#             if not val:
-#                 continue
-#             parts = str(key).split('_')
-#             if len(parts) == 3 and parts[0] == 'x':
-#                 r = int(parts[1])
-#                 per_route_counts[r] += 1
-#         unassigned = sum(1 for c in per_route_counts if c == 0)
-#         overassigned = sum(1 for c in per_route_counts if c > 1)
-#         return unassigned, overassigned
-
-#     for num_drones in range(DRONES_START, DRONES_END + 1):
-#         # routes count starts at current #drones (per your spec: 2/2, 2/3,... then 3/3, 3/4, ...)
-#         start_routes = max(2, num_drones)
-#         for num_routes in range(start_routes, len(routes_full) + 1):
-#             routes = routes_full[:num_routes]
-
-#             # Build QUBO once to check term count (don’t solve yet)
-#             sched_probe = DroneQUBOScheduler(routes, problem.costs, num_drones)
-#             qubo_probe = sched_probe.formulate_qubo()
-#             terms_count = len(qubo_probe.get_dict())
-
-#             if terms_count > MAX_TERMS:
-#                 print(f"\n⛔ QUBO for {num_drones} drones / {num_routes} routes has {terms_count} terms (> {MAX_TERMS}).")
-#                 print("➡️  Stopping route growth for this drone count and moving to the next number of drones.\n")
-#                 break
-
-#             print(f"\n**Running {TRIALS_PER_SETTING} Trials: {num_drones} Drones, {num_routes} Routes**")
-#             print(f"QUBO terms: {terms_count}")
-
-#             makespans = []
-#             balances = []   # std dev of loads
-#             coverages = []  # fraction of routes with exactly one assignment
-#             per_trial_details = []
-
-#             for trial in range(1, TRIALS_PER_SETTING + 1):
-#                 # Build a fresh scheduler & QUBO for each trial (same instance is fine too)
-#                 scheduler = DroneQUBOScheduler(routes, problem.costs, num_drones)
-#                 qubo = scheduler.formulate_qubo()
-
-#                 # Solve via QAOA
-#                 sample = solve_qubo(qubo, solver="qaoa", shots=512)
-
-#                 # Parse assignment
-#                 assignments = parse_solution_to_assignments(sample)
-
-#                 # Compute coverage diagnostics
-#                 unassigned, overassigned = assignment_violations(sample, num_routes, num_drones)
-#                 exactly_once = num_routes - (unassigned + overassigned)
-#                 coverage = exactly_once / float(num_routes) if num_routes > 0 else 1.0
-#                 coverages.append(coverage)
-
-#                 # Build printed assignment lists & loads
-#                 drone_assignments = {i: [] for i in range(num_drones)}
-#                 for r_idx, d_idx in assignments.items():
-#                     if 0 <= d_idx < num_drones and 0 <= r_idx < num_routes:
-#                         drone_assignments[d_idx].append(routes[r_idx])
-
-#                 loads = compute_loads(assignments, routes, problem.costs, num_drones)
-#                 makespan = max(loads) if loads else 0.0
-#                 makespans.append(makespan)
-#                 # population std dev (or sample)—use population here
-#                 mu = sum(loads) / num_drones if num_drones > 0 else 0.0
-#                 variance = sum((L - mu) ** 2 for L in loads) / (num_drones if num_drones > 0 else 1)
-#                 balances.append(variance ** 0.5)
-
-#                 # Print trial details (similar to your existing output)
-#                 print(f"\n🔄 Trial {trial}")
-#                 print(f"Optimized Drone Assignments (route→drone): {assignments}")
-#                 print("\n🛠 **Drone Scheduling Results:**")
-#                 for d in range(num_drones):
-#                     total_load = sum(route_cost(rte, problem.costs) for rte in drone_assignments[d])
-#                     print(f"🚁 **Drone {d}:** Routes {drone_assignments[d]}, **Total Load = {total_load}**")
-#                 print(f"📦 Coverage: {exactly_once}/{num_routes} routes assigned exactly once "
-#                       f"(unassigned={unassigned}, overassigned={overassigned})")
-#                 print(f"⏱️ Makespan: {makespan:.4f} | Load StdDev: {balances[-1]:.4f}")
-
-#                 per_trial_details.append({
-#                     "assignments": assignments,
-#                     "loads": loads,
-#                     "makespan": makespan,
-#                     "coverage": coverage,
-#                     "unassigned": unassigned,
-#                     "overassigned": overassigned
-#                 })
-
-#             # Summary for this (num_drones, num_routes)
-#             avg_makespan = sum(makespans) / len(makespans) if makespans else 0.0
-#             avg_balance = sum(balances) / len(balances) if balances else 0.0
-#             avg_coverage = 100.0 * (sum(coverages) / len(coverages)) if coverages else 0.0
-
-#             print("\n📊 **Summary for Setting**")
-#             print(f"🧮 Drones = {num_drones}, Routes = {num_routes}, QUBO terms = {terms_count}")
-#             print(f"⏱️ Avg Makespan over {TRIALS_PER_SETTING} trials: {avg_makespan:.4f}")
-#             print(f"📈 Avg Load StdDev: {avg_balance:.4f}")
-#             print(f"✅ Avg Exact-Assignment Coverage: {avg_coverage:.1f}%")
-#             print(f"📝 Trials detail (makespan per trial): {[round(m, 4) for m in makespans]}")
-#             print(f"\n✅ **Completed Runs for {num_drones} Drones / {num_routes} Routes** ✅\n")
+        print(f"\n**Completed Runs for {num_drones} Drones**\n") 
